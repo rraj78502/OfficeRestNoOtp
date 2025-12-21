@@ -1,0 +1,77 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: office_rest_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: office_rest_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=production
+      - PORT=8000
+      # Service-to-service connection string
+      - MONGO_URI=mongodb://mongo:27017/REST
+      # CORS: allow both frontends served by compose
+      - CORS_ORIGIN=http://localhost:8081,http://172.16.49.163:8081,http://10.26.192.124:8081,https://rest.ntc.net.np
+      - USER_CORS_ORIGIN=http://localhost:8080,http://172.16.49.163:8080,http://10.26.192.124:8080,https://rest.ntc.net.np
+      # Allow requests from the server's public IP for both frontends
+      - CORS_ORIGINS=http://172.16.49.163:8081,http://172.16.49.163:8080,http://10.26.192.124:8081,http://10.26.192.124:8080,https://rest.ntc.net.np
+      # Optional: additional comma-separated origins
+      # - CORS_ORIGINS=
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  frontend-user:
+    build:
+      context: ./frontend/user
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${BACKEND_HOST:-http://localhost:8000}
+    container_name: office_rest_frontend_user
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  frontend-admin:
+    build:
+      context: ./frontend/admin
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${BACKEND_HOST:-http://localhost:8000}
+    container_name: office_rest_frontend_admin
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  mongo-express:
+    image: mongo-express:1
+    container_name: office_rest_mongo_express
+    ports:
+      - "8082:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017/REST
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_UI_USER:-admin}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_UI_PASS:-changeme}
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+    driver: local
