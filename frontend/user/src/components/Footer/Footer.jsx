@@ -1,9 +1,20 @@
 // src/components/Footer.jsx
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaPhone, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
 import logo from "../../assets/logo.jpg";
+import { getPageContent } from '../../utils/contentUtils';
 
 function Footer() {
+  const [content, setContent] = useState({});
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      const pageContent = await getPageContent('footer');
+      setContent(pageContent);
+    };
+    fetchContent();
+  }, []);
   const links = [
     { name: "About Us", path: "/aboutus" },
     { name: "Events", path: "/events" },
@@ -28,7 +39,7 @@ function Footer() {
             Babarmahal, Kathmandu, Nepal
           </p>
           <p className="text-xs mt-2">
-            © 2024 R.E.S.T. All Rights Reserved.
+            {content.footer_copyright?.content || "© 2024 R.E.S.T. All Rights Reserved."}
           </p>
         </div>
 
@@ -51,13 +62,13 @@ function Footer() {
           <h3 className="text-white font-semibold mb-2">Contact Info</h3>
           <ul className="space-y-2 text-sm">
             <li className="flex items-center gap-2">
-              <FaPhone className="text-white" /> +977-1-4794225
+              <FaPhone className="text-white" /> {content.footer_phone?.content || "+977-1-4794225"}
             </li>
             <li className="flex items-center gap-2">
-              <FaEnvelope className="text-white" /> rest@ntc.net.np
+              <FaEnvelope className="text-white" /> {content.footer_email?.content || "rest@ntc.net.np"}
             </li>
             <li className="flex items-center gap-2">
-              <FaMapMarkerAlt className="text-white" /> Kathmandu, Nepal
+              <FaMapMarkerAlt className="text-white" /> {content.footer_address?.content || "Kathmandu, Nepal"}
             </li>
           </ul>
         </div>

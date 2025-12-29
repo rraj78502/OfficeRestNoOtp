@@ -1,6 +1,7 @@
 const cookieParser = require('cookie-parser');
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
@@ -66,6 +67,8 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '16kb' }));
 app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 app.use(express.static('public'));
+// Serve uploaded assets directly so stored URLs resolve without a proxy route
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(cookieParser());
 
 // Routers
@@ -75,6 +78,7 @@ const galleryRouter = require('./routes/galeryRoutes');
 const committeeRouter = require('./routes/committeeRoutes');
 const branchRouter = require('./routes/branchRoutes');
 const carouselRouter = require('./routes/carouselRoutes');
+const contentRouter = require('./routes/contentRoutes');
 
 
 app.use('/api/v1/user', userRouter);
@@ -83,6 +87,7 @@ app.use('/api/v1/gallery', galleryRouter);
 app.use('/api/v1/committee-members', committeeRouter);
 app.use('/api/v1/branches', branchRouter);
 app.use('/api/v1/carousel', carouselRouter);
+app.use('/api/v1/content', contentRouter);
 
 
 // Global Error Handler

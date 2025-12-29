@@ -17,7 +17,7 @@ Pick the scenario that matches what you're doing.
 
 2. **Fill in secrets & local overrides:**
    ```bash
-   # Backend/API secrets, SMTP, Cloudinary, etc.
+   # Backend/API secrets, SMTP, BASE_URL for uploads, etc.
    nano backend/.env
 
    # Optional overrides for BACKEND_HOST/ME_* that flow into dev containers
@@ -105,8 +105,13 @@ BACKEND_HOST=https://api.yourcompany.com
 | `JWT_SECRET`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET` | Token signing secrets |
 | `ACCESS_TOKEN_EXPIRY`, `REFRESH_TOKEN_EXPIRY` | Lifetimes such as `6h` / `10d` |
 | `CORS_*` | Comma-separated origins allowed to hit the API |
-| `CLOUDINARY_*` | Media upload credentials |
+| `BASE_URL` | Absolute origin (e.g., `http://localhost:8000`) used to build upload URLs |
 | `EMAIL_*` | SMTP settings for password reset emails |
+
+### File Storage (Uploads)
+
+- All user uploads (profile pictures, gallery images, etc.) are saved under `backend/uploads` inside the backend container. In **local development**, this folder is bind-mounted from your workstation, so files persist automatically.
+- In **production Docker Compose**, the backend service mounts the named volume `backend_uploads` to `/app/uploads`, keeping files on the host even after redeploys. If you need to inspect or back up uploads, use `docker volume inspect backend_uploads` to find the host path.
 
 ## Services & Ports
 

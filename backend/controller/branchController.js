@@ -2,8 +2,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const Branch = require("../model/branchModel");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
-const { uploadOnCloudinary } = require("../utils/cloudinary");
-const cloudinary = require("cloudinary").v2;
+const { uploadFileWithFolderLogic, deleteFileFromStorage } = require("../helper/storageHelper");
 const User = require("../model/userModel");
 
 const buildMemberDisplayName = (userDoc, fallback) => {
@@ -69,20 +68,20 @@ const normalizeTeamMembers = async (teamMembers, files, existingMembers = []) =>
       if (files && files[`teamMember_${index}_profilePic`]) {
         try {
           if (existing?.profilePic && isManagedTeamProfile(existing.profilePic)) {
-            const publicId = existing.profilePic.split("/").pop().split(".")[0];
-            await cloudinary.uploader.destroy(`Team Member Profiles/${publicId}`);
+            await deleteFileFromStorage(existing.profilePic);
           }
         } catch (error) {
           console.error(`Failed to delete previous team member (${index}) profile pic:`, error.message);
         }
 
         try {
-          const uploadResult = await uploadOnCloudinary(
+          const uploadResult = await uploadFileWithFolderLogic(
             files[`teamMember_${index}_profilePic`][0].path,
+            files[`teamMember_${index}_profilePic`][0].mimetype,
             "Team Member Profiles"
           );
-          if (uploadResult?.secure_url) {
-            profilePicUrl = uploadResult.secure_url;
+          if (uploadResult?.url) {
+            profilePicUrl = uploadResult.url;
           }
         } catch (error) {
           console.error(`Team member ${index} profile pic upload failed:`, error);
@@ -237,12 +236,13 @@ const createBranch = asyncHandler(async (req, res) => {
   let heroImageUrl = "";
   if (req.files && req.files.heroImage) {
     try {
-      const heroImageResult = await uploadOnCloudinary(
+      const heroImageResult = await uploadFileWithFolderLogic(
         req.files.heroImage[0].path,
+        req.files.heroImage[0].mimetype,
         "Branch Images"
       );
-      if (heroImageResult && heroImageResult.secure_url) {
-        heroImageUrl = heroImageResult.secure_url;
+      if (heroImageResult && heroImageResult.url) {
+        heroImageUrl = heroImageResult.url;
       }
     } catch (error) {
       throw new ApiError(500, `Hero image upload failed: ${error.message}`);
@@ -358,17 +358,17 @@ const updateBranch = asyncHandler(async (req, res) => {
     try {
       // Delete old hero image if exists
       if (branch.heroImage) {
-        const publicId = branch.heroImage.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(`Branch Images/${publicId}`);
+        await deleteFileFromStorage(branch.heroImage);
       }
       
       // Upload new hero image
-      const heroImageResult = await uploadOnCloudinary(
+      const heroImageResult = await uploadFileWithFolderLogic(
         req.files.heroImage[0].path,
+        req.files.heroImage[0].mimetype,
         "Branch Images"
       );
-      if (heroImageResult && heroImageResult.secure_url) {
-        updateData.heroImage = heroImageResult.secure_url;
+      if (heroImageResult && heroImageResult.url) {
+        updateData.heroImage = heroImageResult.url;
       }
     } catch (error) {
       throw new ApiError(500, `Hero image upload failed: ${error.message}`);
@@ -424,18 +424,15 @@ const deleteBranch = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Branch not found");
   }
 
-  // Delete associated files from Cloudinary
+  // Delete associated files from local storage
   const deletionErrors = [];
   
   // Delete hero image
   if (branch.heroImage) {
     try {
-      const publicId = branch.heroImage.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`Branch Images/${publicId}`);
+      await deleteFileFromStorage(branch.heroImage);
     } catch (error) {
-      if (!error.message.includes("not found")) {
-        deletionErrors.push(`Failed to delete hero image: ${error.message}`);
-      }
+      deletionErrors.push(`Failed to delete hero image: ${error.message}`);
     }
   }
 
@@ -444,12 +441,9 @@ const deleteBranch = asyncHandler(async (req, res) => {
     for (const member of branch.teamMembers) {
       if (isManagedTeamProfile(member.profilePic)) {
         try {
-          const publicId = member.profilePic.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(`Team Member Profiles/${publicId}`);
+          await deleteFileFromStorage(member.profilePic);
         } catch (error) {
-          if (!error.message.includes("not found")) {
-            deletionErrors.push(`Failed to delete team member profile pic: ${error.message}`);
-          }
+          deletionErrors.push(`Failed to delete team member profile pic: ${error.message}`);
         }
       }
     }

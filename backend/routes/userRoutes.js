@@ -13,6 +13,7 @@ const {
   lookupMemberByEmployeeId,
   bulkImportMembersController,
   exportMembersController,
+  adminUpdateUserPasswordController,
 } = require("../controller/userController");
 const verifyJWT = require("../middleware/authMiddleware");
 const verifyAdmin = require("../middleware/verifyAdmin");
@@ -90,6 +91,12 @@ router.patch(
     { name: "additionalFile", maxCount: 1 },
   ]),
   updateUserController
+);
+router.post(
+  "/update-password/:id",
+  verifyJWT,
+  verifyAdmin,
+  adminUpdateUserPasswordController
 );
 
 module.exports = router;

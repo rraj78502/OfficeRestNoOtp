@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { getPageContent } from '../utils/contentUtils';
 
 const api_base_url = import.meta.env.VITE_API_URL;
 
@@ -14,7 +15,17 @@ function Login() {
   const [resetToken, setResetToken] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState({});
   const navigate = useNavigate();
+
+  // Fetch page content
+  useEffect(() => {
+    const fetchContent = async () => {
+      const pageContent = await getPageContent('login');
+      setContent(pageContent);
+    };
+    fetchContent();
+  }, []);
 
   // Check authentication status on component mount
   useEffect(() => {
@@ -133,7 +144,8 @@ function Login() {
       <section className="bg-gradient-to-b from-[#0c1c35] to-[#13284c] text-white py-20 text-center">
         <h1 className="text-4xl font-bold mb-0">Login to R.E.S.T</h1>
         <p className="text-lg max-w-2xl mx-auto mt-2">
-          Access your account to connect with the retired telecommunications community.
+          {content.login_hero_subtitle?.content || 
+            "Access your account to connect with the retired telecommunications community."}
         </p>
       </section>
 

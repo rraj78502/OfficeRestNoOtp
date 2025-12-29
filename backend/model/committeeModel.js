@@ -33,7 +33,7 @@ const committeeMemberSchema = new mongoose.Schema(
       type: String, // e.g., "2065/5/27" or "Current"
     },
     profilePic: {
-      type: String, // URL for profile picture (Cloudinary)
+      type: String, // URL pointing to stored profile picture
       default: "",
     },
     userId: {

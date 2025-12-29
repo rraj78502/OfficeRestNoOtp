@@ -4,10 +4,12 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import rest from "../assets/rest.jpg";
+import { getPageContent } from '../utils/contentUtils';
 
 function About() {
   const [currentCommittee, setCurrentCommittee] = useState([]);
   const [chairman, setChairman] = useState(null);
+  const [content, setContent] = useState({});
 
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -20,6 +22,15 @@ function About() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Fetch page content
+  useEffect(() => {
+    const fetchContent = async () => {
+      const pageContent = await getPageContent('about');
+      setContent(pageContent);
+    };
+    fetchContent();
+  }, []);
 
   // Fetch current committee members and chairman
   useEffect(() => {
@@ -81,7 +92,8 @@ function About() {
                 opacity: 0.90,
               }}
             >
-              Safeguarding the welfare of retired telecom professionals and harnessing their expertise for national development.
+              {content.about_hero_subtitle?.content || 
+                "Safeguarding the welfare of retired telecom professionals and harnessing their expertise for national development."}
             </p>
           </div>
         </div>
@@ -93,31 +105,37 @@ function About() {
           <div>
             <h1 className="text-3xl font-bold mb-6">Welcome to Nepal Telecommunication Retired Employees Society (REST)</h1>
             <p className="mb-4">
-              The <strong>Nepal Telecommunication Retired Employees Society (REST)</strong> was established to safeguard and promote the welfare of former employees retired from Nepal Telecommunications Corporation and Nepal Telecom, who receive retirement benefits or pensions.
+              {content.about_welcome_para1?.content || 
+                "The Nepal Telecommunication Retired Employees Society (REST) was established to safeguard and promote the welfare of former employees retired from Nepal Telecommunications Corporation and Nepal Telecom, who receive retirement benefits or pensions."}
             </p>
             <p className="mb-4">
-              We honor these individuals for their service and encourage their continued contribution to the telecommunications sector and social development. Through income-generating and skill-enhancement programs, we harness the knowledge, expertise, and insights of retirees for national development.
+              {content.about_welcome_para2?.content || 
+                "We honor these individuals for their service and encourage their continued contribution to the telecommunications sector and social development. Through income-generating and skill-enhancement programs, we harness the knowledge, expertise, and insights of retirees for national development."}
             </p>
             <p className="">
-              REST serves as a platform to recognize the value of our members and ensure their meaningful engagement post-retirement. Retirement is not an end but a new beginning for growth, contribution, and community support.
+              {content.about_welcome_para3?.content || 
+                "REST serves as a platform to recognize the value of our members and ensure their meaningful engagement post-retirement. Retirement is not an end but a new beginning for growth, contribution, and community support."}
             </p>
           </div>
           <div className="space-y-6">
             {[
               {
                 icon: <FaUsers size={24} />,
-                title: "Non-Profit Social Organization",
-                desc: "A public interest organization dedicated to the welfare of over 500+ retired telecom professionals across Nepal.",
+                title: content.about_nonprofit_desc?.title || "Non-Profit Social Organization",
+                desc: content.about_nonprofit_desc?.content || 
+                  "A public interest organization dedicated to the welfare of over 500+ retired telecom professionals across Nepal.",
               },
               {
                 icon: <FaBuilding size={24} />,
-                title: "Rights and Welfare Protection",
-                desc: "Advocating for the rights, interests, and entitlements of former employees, with headquarters in Kathmandu and nationwide outreach.",
+                title: content.about_rights_welfare_desc?.title || "Rights and Welfare Protection",
+                desc: content.about_rights_welfare_desc?.content || 
+                  "Advocating for the rights, interests, and entitlements of former employees, with headquarters in Kathmandu and nationwide outreach.",
               },
               {
                 icon: <FaHandsHelping size={24} />,
-                title: "Skill Enhancement and Engagement",
-                desc: "Programs for training, research, and utilizing retired expertise in telecommunications, including collaborations for national development.",
+                title: content.about_skill_enhancement_desc?.title || "Skill Enhancement and Engagement",
+                desc: content.about_skill_enhancement_desc?.content || 
+                  "Programs for training, research, and utilizing retired expertise in telecommunications, including collaborations for national development.",
               },
             ].map(({ icon, title, desc }) => (
               <div key={title} className="border border-gray-700 rounded-lg p-5">
@@ -141,17 +159,20 @@ function About() {
               {
                 icon: <FaLightbulb size={36} className="text-yellow-400 mb-4" />,
                 title: "Vision",
-                text: "To create a supportive platform where retired telecommunications professionals can thrive, share their expertise, and contribute to national development and social welfare.",
+                text: content.about_vision?.content || 
+                  "To create a supportive platform where retired telecommunications professionals can thrive, share their expertise, and contribute to national development and social welfare.",
               },
               {
                 icon: <FaBullseye size={36} className="text-blue-400 mb-4" />,
                 title: "Mission",
-                text: "To safeguard the welfare of retired employees through income-generating programs, skill enhancement, advocacy for rights, and facilitation of their involvement in telecom-related initiatives and disaster response.",
+                text: content.about_mission?.content || 
+                  "To safeguard the welfare of retired employees through income-generating programs, skill enhancement, advocacy for rights, and facilitation of their involvement in telecom-related initiatives and disaster response.",
               },
               {
                 icon: <FaAward size={36} className="text-green-400 mb-4" />,
                 title: "Values",
-                text: "We value respect, integrity, community support, and the wisdom of experience. Our commitment includes honoring contributions, promoting entitlements, and collaborating with similar organizations for consumer rights and sector coordination.",
+                text: content.about_values?.content || 
+                  "We value respect, integrity, community support, and the wisdom of experience. Our commitment includes honoring contributions, promoting entitlements, and collaborating with similar organizations for consumer rights and sector coordination.",
               },
             ].map(({ icon, title, text }) => (
               <div key={title} className="border border-gray-700 p-6 rounded-lg text-center">
@@ -204,12 +225,16 @@ function About() {
           <h2 className="text-3xl font-bold text-center mb-12">Message from Our Chairman</h2>
           <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-2 space-y-6">
-              <p className="font-semibold">Respected members, greetings and salutations!</p>
-              <p>It brings me immense joy to welcome you to our Nepal Telecommunication Retired Employees Society (REST) website. Retirement is not an end but a new beginning for continued contribution to the telecommunications sector and national development.</p>
-              <p>Our Society honors the service of retired employees from Nepal Telecom, safeguarding their welfare through programs that harness their knowledge and expertise. We protect rights, promote entitlements, and facilitate engagement in training, research, and disaster response.</p>
-              <p>Through REST, we advocate for representation in Nepal Telecom initiatives and collaborate with similar organizations to enhance consumer rights and social services.</p>
-              <p>I encourage you to participate in our events, share your experiences, and help build a stronger community that ensures meaningful post-retirement involvement.</p>
-              <p className="font-semibold">Thank you for being part of this wonderful journey.</p>
+              <p className="font-semibold">{content.about_chairman_greeting?.content || "Respected members, greetings and salutations!"}</p>
+              <p>{content.about_chairman_para1?.content || 
+                "It brings me immense joy to welcome you to our Nepal Telecommunication Retired Employees Society (REST) website. Retirement is not an end but a new beginning for continued contribution to the telecommunications sector and national development."}</p>
+              <p>{content.about_chairman_para2?.content || 
+                "Our Society honors the service of retired employees from Nepal Telecom, safeguarding their welfare through programs that harness their knowledge and expertise. We protect rights, promote entitlements, and facilitate engagement in training, research, and disaster response."}</p>
+              <p>{content.about_chairman_para3?.content || 
+                "Through REST, we advocate for representation in Nepal Telecom initiatives and collaborate with similar organizations to enhance consumer rights and social services."}</p>
+              <p>{content.about_chairman_para4?.content || 
+                "I encourage you to participate in our events, share your experiences, and help build a stronger community that ensures meaningful post-retirement involvement."}</p>
+              <p className="font-semibold">{content.about_chairman_closing?.content || "Thank you for being part of this wonderful journey."}</p>
               <div>
                 <p className="font-bold">{chairman?.name || "Chairman"}</p>
                 <p>Chairman, REST</p>

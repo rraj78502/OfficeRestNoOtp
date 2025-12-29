@@ -1,10 +1,10 @@
-  const asyncHandler = require("../utils/asyncHandler");
-  const Event = require("../model/eventModel");
-  const {validateUploadedFiles} = require("../utils/valiadateFiles");
-  const ApiError = require("../utils/ApiError");
-  const ApiResponse = require("../utils/ApiResponse");
-  const { uploadFileWithFolderLogic, deleteFileFromCloudinary} = require("../helper/cloudinaryHepler");
-  const mongoose = require("mongoose");
+const asyncHandler = require("../utils/asyncHandler");
+const Event = require("../model/eventModel");
+const {validateUploadedFiles} = require("../utils/valiadateFiles");
+const ApiError = require("../utils/ApiError");
+const ApiResponse = require("../utils/ApiResponse");
+const { uploadFileWithFolderLogic, deleteFileFromStorage } = require("../helper/storageHelper");
+const mongoose = require("mongoose");
 
 
   // Create event (Admin only)
@@ -25,27 +25,22 @@
     // Validate file uploads
     validateUploadedFiles(req.files);
 
-    // Upload files to Cloudinary
+    // Upload files to local storage
     const files = [];
     for (const file of req.files) {
       try {
         const result = await uploadFileWithFolderLogic(file.path, file.mimetype, "Event Files");
-        console.log(`Cloudinary upload result for ${file.path}:`, result);
-        if (result && result.secure_url) {
-          files.push({
-            url: result.secure_url,
-            type: file.mimetype,
-          });
-        } else {
-          console.error(`No secure_url for file ${file.path}`);
-        }
+        files.push({
+          url: result.url,
+          type: file.mimetype,
+        });
       } catch (error) {
         console.error(`Failed to upload file ${file.path}:`, error.message);
       }
     }
 
     if (files.length === 0) {
-      throw new ApiError(400, "Failed to upload any files to Cloudinary");
+      throw new ApiError(400, "Failed to upload any files");
     }
 
     // Debug log for files array before saving
@@ -133,15 +128,10 @@
       for (const file of req.files) {
         try {
           const result = await uploadFileWithFolderLogic(file.path, file.mimetype, "Event Files");
-          console.log(`Cloudinary upload result for ${file.path}:`, result);
-          if (result && result.secure_url) {
-            newFiles.push({
-              url: result.secure_url,
-              type: file.mimetype,
-            });
-          } else {
-            console.error(`No secure_url for file ${file.path}`);
-          }
+          newFiles.push({
+            url: result.url,
+            type: file.mimetype,
+          });
         } catch (error) {
           console.error(`Failed to upload file ${file.path}:`, error.message);
         }
@@ -175,21 +165,19 @@
       throw new ApiError(404, "Event not found");
     }
 
-    // Delete files from Cloudinary
+    // Delete files from local storage
     const deletionErrors = [];
     for (const file of event.files) {
       try {
-        await deleteFileFromCloudinary(file.url, file.type);
+        await deleteFileFromStorage(file.url);
       } catch (error) {
-        console.error(`Failed to delete file ${file.url} from Cloudinary:`, error.message);
-        if (!error.message.includes('not found')) {
-          deletionErrors.push(`Failed to delete ${file.url}: ${error.message}`);
-        }
+        console.error(`Failed to delete file ${file.url}:`, error.message);
+        deletionErrors.push(`Failed to delete ${file.url}: ${error.message}`);
       }
     }
 
     if (deletionErrors.length > 0) {
-      throw new ApiError(500, `Some files could not be deleted from Cloudinary: ${deletionErrors.join('; ')}`);
+      throw new ApiError(500, `Some files could not be deleted: ${deletionErrors.join('; ')}`);
     }
 
     await Event.findByIdAndDelete(id);
@@ -212,19 +200,18 @@
       throw new ApiError(404, "Event not found");
     }
 
-    const fileIndex = event.files.findIndex((file) => file.url === fileUrl);
+    const decodedFileUrl = decodeURIComponent(fileUrl || "");
+    const fileIndex = event.files.findIndex((file) => file.url === decodedFileUrl);
     if (fileIndex === -1) {
       throw new ApiError(404, "File not found in event");
     }
 
-  // In your delete controller
+    const file = event.files[fileIndex];
     try {
-      await deleteFileFromCloudinary(file.url, file.type);
+      await deleteFileFromStorage(file.url);
     } catch (error) {
-      console.error(`Failed to delete file ${file.url} from Cloudinary:`, error.message);
-      if (!error.message.includes('not found')) {
-        deletionErrors.push(`Failed to delete ${file.url}: ${error.message}`);
-      }
+      console.error(`Failed to delete file ${file.url}:`, error.message);
+      throw new ApiError(500, `Failed to delete ${file.url}: ${error.message}`);
     }
 
     // Remove file from event

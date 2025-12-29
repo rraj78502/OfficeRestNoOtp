@@ -3,8 +3,7 @@ const CommitteeMember = require("../model/committeeModel");
 const User = require("../model/userModel");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
-const { uploadOnCloudinary } = require("../utils/cloudinary");
-const cloudinary = require("cloudinary").v2;
+const { uploadFileWithFolderLogic, deleteFileFromStorage } = require("../helper/storageHelper");
 
 function escapeRegex(text) {
   return text.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
@@ -39,19 +38,16 @@ const createCommitteeMember = asyncHandler(async (req, res) => {
     }
   }
 
-  // Upload profile picture to Cloudinary (if provided)
+  // Upload profile picture to local storage (if provided)
   let profilePicUrl = linkedUser?.profilePic || "";
   if (req.files && req.files.profilePic) {
     try {
-      const profilePicResult = await uploadOnCloudinary(
+      const profilePicResult = await uploadFileWithFolderLogic(
         req.files.profilePic[0].path,
+        req.files.profilePic[0].mimetype,
         "Committee Profiles"
       );
-      if (profilePicResult && profilePicResult.secure_url) {
-        profilePicUrl = profilePicResult.secure_url;
-      } else {
-        throw new ApiError(500, "Failed to upload profile picture");
-      }
+      profilePicUrl = profilePicResult.url;
     } catch (error) {
       throw new ApiError(500, `Profile picture upload failed: ${error.message}`);
     }
@@ -154,21 +150,16 @@ const updateCommitteeMember = asyncHandler(async (req, res) => {
   // Update profile picture if provided
   if (req.files && req.files.profilePic) {
     try {
-      // Delete old profile picture from Cloudinary if exists
+      // Delete old profile picture from storage if exists
       if (committeeMember.profilePic) {
-        const publicId = committeeMember.profilePic.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(`Committee Profiles/${publicId}`);
+        await deleteFileFromStorage(committeeMember.profilePic);
       }
-      // Upload new profile picture
-      const profilePicResult = await uploadOnCloudinary(
+      const profilePicResult = await uploadFileWithFolderLogic(
         req.files.profilePic[0].path,
+        req.files.profilePic[0].mimetype,
         "Committee Profiles"
       );
-      if (profilePicResult && profilePicResult.secure_url) {
-        committeeMember.profilePic = profilePicResult.secure_url;
-      } else {
-        throw new ApiError(500, "Failed to upload profile picture");
-      }
+      committeeMember.profilePic = profilePicResult.url;
     } catch (error) {
       throw new ApiError(500, `Profile picture upload failed: ${error.message}`);
     }
@@ -210,15 +201,12 @@ const deleteCommitteeMember = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Committee member not found");
   }
 
-  // Delete profile picture from Cloudinary if exists
+  // Delete profile picture from storage if exists
   if (committeeMember.profilePic) {
     try {
-      const publicId = committeeMember.profilePic.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`Committee Profiles/${publicId}`);
+      await deleteFileFromStorage(committeeMember.profilePic);
     } catch (error) {
-      if (!error.message.includes("not found")) {
-        throw new ApiError(500, `Failed to delete profile picture: ${error.message}`);
-      }
+      throw new ApiError(500, `Failed to delete profile picture: ${error.message}`);
     }
   }
 

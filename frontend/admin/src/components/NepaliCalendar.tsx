@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay } from 'date-fns';
+import { format, addMonths, subMonths, getDaysInMonth, startOfMonth, getDay, differenceInCalendarDays } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CalendarType, convertADToBS, convertBSToAD } from '@/utils/dateUtils';
 
 // Interface for events (matches Dashboard's Event interface)
 interface Event {
@@ -20,25 +21,87 @@ interface NepaliCalendarProps {
   onDateClick: (date: string) => Promise<void>;
 }
 
+const bsMonthNames = [
+  'Baisakh',
+  'Jestha',
+  'Ashadh',
+  'Shrawan',
+  'Bhadra',
+  'Ashwin',
+  'Kartik',
+  'Mangsir',
+  'Poush',
+  'Magh',
+  'Falgun',
+  'Chaitra',
+];
+
 const NepaliCalendar: React.FC<NepaliCalendarProps> = ({ events, onDateClick }) => {
-  // State for current month and year (start with May 2025)
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 4, 1)); // May 1, 2025
+  const initialDate = new Date();
+  const [calendarType, setCalendarType] = useState<CalendarType>('AD');
+  const [currentAdDate, setCurrentAdDate] = useState(initialDate);
+  const [currentBsDate, setCurrentBsDate] = useState(() => {
+    const bs = convertADToBS(initialDate);
+    return { ...bs, day: 1 };
+  });
 
   // Navigation handlers
+  const syncBsWithAd = (date: Date) => {
+    const bs = convertADToBS(date);
+    setCurrentBsDate({ ...bs, day: 1 });
+  };
+
+  const syncAdWithBs = (year: number, month: number) => {
+    const ad = convertBSToAD(year, month, 1);
+    setCurrentAdDate(ad);
+  };
+
   const goToPreviousMonth = () => {
-    setCurrentDate((prev) => subMonths(prev, 1));
+    if (calendarType === 'AD') {
+      const newDate = subMonths(currentAdDate, 1);
+      setCurrentAdDate(newDate);
+      syncBsWithAd(newDate);
+    } else {
+      setCurrentBsDate((prev) => {
+        let month = prev.month - 1;
+        let year = prev.year;
+        if (month < 1) {
+          month = 12;
+          year -= 1;
+        }
+        syncAdWithBs(year, month);
+        return { year, month, day: 1 };
+      });
+    }
   };
 
   const goToNextMonth = () => {
-    setCurrentDate((prev) => addMonths(prev, 1));
+    if (calendarType === 'AD') {
+      const newDate = addMonths(currentAdDate, 1);
+      setCurrentAdDate(newDate);
+      syncBsWithAd(newDate);
+    } else {
+      setCurrentBsDate((prev) => {
+        let month = prev.month + 1;
+        let year = prev.year;
+        if (month > 12) {
+          month = 1;
+          year += 1;
+        }
+        syncAdWithBs(year, month);
+        return { year, month, day: 1 };
+      });
+    }
   };
 
-  // Calculate calendar data
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const daysInMonth = getDaysInMonth(currentDate);
-  const firstDayOfMonth = startOfMonth(currentDate);
-  const startingDay = getDay(firstDayOfMonth); // 0 (Sun) to 6 (Sat)
+  const handleCalendarSwitch = (type: CalendarType) => {
+    setCalendarType(type);
+    if (type === 'AD') {
+      syncAdWithBs(currentBsDate.year, currentBsDate.month);
+    } else {
+      syncBsWithAd(currentAdDate);
+    }
+  };
 
   // Helper to check if a date has events
   const hasEventOnDate = (date: Date) => {
@@ -48,38 +111,109 @@ const NepaliCalendar: React.FC<NepaliCalendarProps> = ({ events, onDateClick }) 
     );
   };
 
-  // Generate calendar days
-  const calendarDays = [];
-  // Add empty slots for days before the first day of the month
-  for (let i = 0; i < startingDay; i++) {
-    calendarDays.push(<div key={`empty-${i}`} className="h-10"></div>);
-  }
-  // Add days of the month
-  for (let day = 1; day <= daysInMonth; day++) {
-    const currentDay = new Date(year, month, day);
-    const isEventDay = hasEventOnDate(currentDay);
-    calendarDays.push(
-      <div
-        key={day}
-        className={`h-10 flex items-center justify-center cursor-pointer rounded-full ${
-          isEventDay ? 'bg-blue-100 text-blue-800 font-semibold' : 'hover:bg-gray-100'
-        }`}
-        onClick={() => onDateClick(currentDay.toISOString())}
-      >
-        {day}
-      </div>
-    );
-  }
+  const getBsMonthDays = (year: number, month: number) => {
+    const startAd = convertBSToAD(year, month, 1);
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+    const startNextAd = convertBSToAD(nextYear, nextMonth, 1);
+    return differenceInCalendarDays(startNextAd, startAd);
+  };
+
+  const renderAdCalendar = () => {
+    const calendarDays = [];
+    const year = currentAdDate.getFullYear();
+    const month = currentAdDate.getMonth();
+    const daysInMonth = getDaysInMonth(currentAdDate);
+    const firstDayOfMonth = startOfMonth(currentAdDate);
+    const startingDay = getDay(firstDayOfMonth);
+
+    for (let i = 0; i < startingDay; i++) {
+      calendarDays.push(<div key={`ad-empty-${i}`} className="h-10"></div>);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDay = new Date(year, month, day);
+      const isEventDay = hasEventOnDate(currentDay);
+      calendarDays.push(
+        <div
+          key={`ad-${day}`}
+          className={`h-12 flex flex-col items-center justify-center cursor-pointer rounded-md ${
+            isEventDay ? 'bg-blue-100 text-blue-800 font-semibold' : 'hover:bg-gray-100'
+          }`}
+          onClick={() => onDateClick(currentDay.toISOString())}
+        >
+          <span>{day}</span>
+          <span className="text-xs text-gray-500">{format(currentDay, 'EEE')}</span>
+        </div>
+      );
+    }
+    return calendarDays;
+  };
+
+  const renderBsCalendar = () => {
+    const calendarDays = [];
+    const { year, month } = currentBsDate;
+    const firstAdDay = convertBSToAD(year, month, 1);
+    const startingDay = getDay(firstAdDay);
+    const daysInMonth = getBsMonthDays(year, month);
+
+    for (let i = 0; i < startingDay; i++) {
+      calendarDays.push(<div key={`bs-empty-${i}`} className="h-10"></div>);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const adEquivalent = convertBSToAD(year, month, day);
+      const isEventDay = hasEventOnDate(adEquivalent);
+      calendarDays.push(
+        <div
+          key={`bs-${day}`}
+          className={`h-12 flex flex-col items-center justify-center cursor-pointer rounded-md ${
+            isEventDay ? 'bg-blue-100 text-blue-800 font-semibold' : 'hover:bg-gray-100'
+          }`}
+          onClick={() => onDateClick(adEquivalent.toISOString())}
+        >
+          <span>{day}</span>
+          <span className="text-xs text-gray-500">{format(adEquivalent, 'MMM d')}</span>
+        </div>
+      );
+    }
+    return calendarDays;
+  };
+
+  const calendarDays = calendarType === 'AD' ? renderAdCalendar() : renderBsCalendar();
+
+  const headerLabel =
+    calendarType === 'AD'
+      ? format(currentAdDate, 'MMMM yyyy')
+      : `${bsMonthNames[currentBsDate.month - 1]} ${currentBsDate.year} BS`;
 
   return (
     <div className="p-4 border rounded-lg bg-white shadow">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-lg font-semibold">
-          {format(currentDate, 'MMMM yyyy')} {/* e.g., "May 2025" */}
-        </h2>
+        <h2 className="text-lg font-semibold flex-1 text-center">{headerLabel}</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={calendarType === 'AD' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleCalendarSwitch('AD')}
+          >
+            AD
+          </Button>
+          <Button
+            variant={calendarType === 'BS' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleCalendarSwitch('BS')}
+          >
+            BS
+          </Button>
+        </div>
         <Button variant="outline" size="icon" onClick={goToNextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>

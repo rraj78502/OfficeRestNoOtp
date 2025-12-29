@@ -39,10 +39,6 @@ const gallerySchema = new mongoose.Schema({
         type: String,
         required: true,
       },
-      publicId: {
-        type: String,
-        required: true,
-      },
     },
   ],
   createdAt: {

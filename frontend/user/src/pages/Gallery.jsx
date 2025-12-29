@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import axios from "axios";
+import { getPageContent } from '../utils/contentUtils';
 
 const categories = [
   "All Photos",
@@ -20,6 +21,16 @@ function Gallery() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalImage, setModalImage] = useState(null);
+  const [content, setContent] = useState({});
+
+  // Fetch page content
+  useEffect(() => {
+    const fetchContent = async () => {
+      const pageContent = await getPageContent('gallery');
+      setContent(pageContent);
+    };
+    fetchContent();
+  }, []);
 
   // Fetch all gallery posts
   useEffect(() => {
@@ -79,7 +90,8 @@ function Gallery() {
       <section className="bg-gradient-to-b from-[#0c1c35] to-[#13284c] text-white py-20 text-center">
         <h1 className="text-4xl font-bold">Gallery</h1>
         <p className="mt-2 text-lg">
-          Capturing moments of our vibrant community life and activities
+          {content.gallery_hero_subtitle?.content || 
+            "Capturing moments of our vibrant community life and activities"}
         </p>
       </section>
 

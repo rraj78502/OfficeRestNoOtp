@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { format } from "date-fns";
@@ -8,7 +8,11 @@ const api_base_url = import.meta.env.VITE_API_URL;
 function Profile() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
+  const [uploadingPic, setUploadingPic] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState("");
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchUserData();
@@ -29,6 +33,57 @@ function Profile() {
       console.error("Failed to fetch user data:", error.message);
       setError("Failed to load profile. Please log in.");
       navigate("/login");
+    }
+  };
+
+  const handleProfilePicUpload = async (event) => {
+    const file = event.target.files?.[0];
+    setUploadError("");
+    setUploadSuccess("");
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please select a valid image file.");
+      return;
+    }
+    if (!user?._id) {
+      setUploadError("User session expired. Please log in again.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append("profilePic", file);
+    setUploadingPic(true);
+    try {
+      const response = await axios.patch(
+        `${api_base_url}/api/v1/user/update-user/${user._id}`,
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      if (response.data?.data) {
+        setUser(response.data.data);
+        setUploadSuccess("Profile picture updated.");
+      } else {
+        setUploadSuccess("Profile picture updated.");
+        fetchUserData();
+      }
+    } catch (err) {
+      console.error("Failed to upload profile picture:", err);
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to upload profile picture.";
+      setUploadError(message);
+    } finally {
+      setUploadingPic(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -57,6 +112,26 @@ function Profile() {
               className="w-full h-full object-cover"
             />
           </div>
+        </div>
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleProfilePicUpload}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPic}
+            className={`px-4 py-2 rounded text-white ${
+              uploadingPic ? "bg-gray-400 cursor-not-allowed" : "bg-[#0c1c35] hover:bg-[#13284c]"
+            }`}
+          >
+            {uploadingPic ? "Uploading..." : "Change Profile Picture"}
+          </button>
+          {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
+          {uploadSuccess && <p className="text-sm text-green-600">{uploadSuccess}</p>}
         </div>
 
         {/* Personal Information */}

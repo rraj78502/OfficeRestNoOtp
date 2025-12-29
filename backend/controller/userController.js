@@ -5,8 +5,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const { v4: uuidv4 } = require("uuid");
 const XLSX = require("xlsx");
 const {validateUserFiles} = require("../utils/valiadateFiles");
-const { uploadOnCloudinary } = require("../utils/cloudinary");
-const cloudinary = require("cloudinary").v2;
+const { uploadFileWithFolderLogic, deleteFileFromStorage } = require("../helper/storageHelper");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../utils/sendEmail");
 
@@ -147,38 +146,32 @@ const registerUserController = asyncHandler(async (req, res) => {
   // Validate file uploads
   validateUserFiles(req.files);
 
-  // Upload profile picture to Cloudinary
+  // Upload profile picture to local storage
   let profilePicUrl = "";
   try {
-    const profilePicResult = await uploadOnCloudinary(
+    const profilePicResult = await uploadFileWithFolderLogic(
       req.files.profilePic[0].path,
+      req.files.profilePic[0].mimetype,
       "User Profiles"
     );
-    if (profilePicResult && profilePicResult.secure_url) {
-      profilePicUrl = profilePicResult.secure_url;
-    } else {
-      throw new ApiError(500, "Failed to upload profile picture");
-    }
+    profilePicUrl = profilePicResult.url;
   } catch (error) {
     throw new ApiError(500, `Profile picture upload failed: ${error.message}`);
   }
 
-  // Upload additional file to Cloudinary (if provided)
+  // Upload additional file to local storage (if provided)
   let files = [];
   if (req.files.additionalFile) {
     try {
-      const fileResult = await uploadOnCloudinary(
+      const fileResult = await uploadFileWithFolderLogic(
         req.files.additionalFile[0].path,
+        req.files.additionalFile[0].mimetype,
         "User Files"
       );
-      if (fileResult && fileResult.secure_url) {
-        files.push({
-          url: fileResult.secure_url,
-          type: req.files.additionalFile[0].mimetype,
-        });
-      } else {
-        throw new ApiError(500, "Failed to upload additional file");
-      }
+      files.push({
+        url: fileResult.url,
+        type: req.files.additionalFile[0].mimetype,
+      });
     } catch (error) {
       throw new ApiError(500, `Additional file upload failed: ${error.message}`);
     }
@@ -341,16 +334,31 @@ const updateUserController = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
 
+  const removeProfilePic =
+    typeof updateData.removeProfilePic === "string"
+      ? updateData.removeProfilePic === "true"
+      : Boolean(updateData.removeProfilePic);
+
   delete updateData.password;
   delete updateData.refreshToken;
   // delete updateData.role; // Allow role to be updated
   delete updateData.membershipNumber;
   delete updateData.registrationNumber;
   delete updateData.membershipStatus;
+  delete updateData.removeProfilePic;
 
   const user = await User.findById(id);
   if (!user) {
     throw new ApiError(404, "User not found");
+  }
+
+  if (removeProfilePic && user.profilePic) {
+    try {
+      await deleteFileFromStorage(user.profilePic);
+    } catch (error) {
+      console.error("Failed to delete existing profile picture:", error.message);
+    }
+    user.profilePic = "";
   }
 
   // Validate file uploads if provided
@@ -360,21 +368,16 @@ const updateUserController = asyncHandler(async (req, res) => {
     // Update profile picture if provided
     if (req.files.profilePic) {
       try {
-        // Delete old profile picture from Cloudinary if exists
+        // Delete old profile picture from storage if exists
         if (user.profilePic) {
-          const publicId = user.profilePic.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(`User Profiles/${publicId}`);
+          await deleteFileFromStorage(user.profilePic);
         }
-        // Upload new profile picture
-        const profilePicResult = await uploadOnCloudinary(
+        const profilePicResult = await uploadFileWithFolderLogic(
           req.files.profilePic[0].path,
+          req.files.profilePic[0].mimetype,
           "User Profiles"
         );
-        if (profilePicResult && profilePicResult.secure_url) {
-          user.profilePic = profilePicResult.secure_url;
-        } else {
-          throw new ApiError(500, "Failed to upload profile picture");
-        }
+        user.profilePic = profilePicResult.url;
       } catch (error) {
         throw new ApiError(500, `Profile picture upload failed: ${error.message}`);
       }
@@ -383,26 +386,21 @@ const updateUserController = asyncHandler(async (req, res) => {
     // Update additional file if provided
     if (req.files.additionalFile) {
       try {
-        // Delete old file from Cloudinary if exists
+        // Delete old file from storage if exists
         if (user.files.length > 0) {
-          const publicId = user.files[0].url.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(`User Files/${publicId}`);
+          await deleteFileFromStorage(user.files[0].url);
         }
-        // Upload new file
-        const fileResult = await uploadOnCloudinary(
+        const fileResult = await uploadFileWithFolderLogic(
           req.files.additionalFile[0].path,
+          req.files.additionalFile[0].mimetype,
           "User Files"
         );
-        if (fileResult && fileResult.secure_url) {
-          user.files = [
-            {
-              url: fileResult.secure_url,
-              type: req.files.additionalFile[0].mimetype,
-            },
-          ];
-        } else {
-          throw new ApiError(500, "Failed to upload additional file");
-        }
+        user.files = [
+          {
+            url: fileResult.url,
+            type: req.files.additionalFile[0].mimetype,
+          },
+        ];
       } catch (error) {
         throw new ApiError(500, `Additional file upload failed: ${error.message}`);
       }
@@ -420,6 +418,28 @@ const updateUserController = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedUser, "User updated successfully"));
 });
 
+// Admin: update user password
+const adminUpdateUserPasswordController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { password } = req.body;
+
+  if (!password || typeof password !== "string" || password.trim().length < 8) {
+    throw new ApiError(400, "Password must be at least 8 characters long");
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  user.password = password.trim();
+  await user.save({ validateBeforeSave: true });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Password updated successfully"));
+});
+
 // Delete user by ID
 const deleteUserController = asyncHandler(async (req, res) => {
   const { id } = req.params;
@@ -429,27 +449,21 @@ const deleteUserController = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User not found");
   }
 
-  // Delete files from Cloudinary
+  // Delete files from local storage
   const deletionErrors = [];
   if (user.profilePic) {
     try {
-      const publicId = user.profilePic.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`User Profiles/${publicId}`);
+      await deleteFileFromStorage(user.profilePic);
     } catch (error) {
-      if (!error.message.includes("not found")) {
-        deletionErrors.push(`Failed to delete profile picture: ${error.message}`);
-      }
+      deletionErrors.push(`Failed to delete profile picture: ${error.message}`);
     }
   }
 
   if (user.files.length > 0) {
     try {
-      const publicId = user.files[0].url.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`User Files/${publicId}`);
+      await deleteFileFromStorage(user.files[0].url);
     } catch (error) {
-      if (!error.message.includes("not found")) {
-        deletionErrors.push(`Failed to delete additional file: ${error.message}`);
-      }
+      deletionErrors.push(`Failed to delete additional file: ${error.message}`);
     }
   }
 
@@ -533,27 +547,21 @@ const declineMembershipController = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Membership is not pending");
   }
 
-  // Delete files from Cloudinary
+  // Delete files from local storage
   const deletionErrors = [];
   if (user.profilePic) {
     try {
-      const publicId = user.profilePic.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`User Profiles/${publicId}`);
+      await deleteFileFromStorage(user.profilePic);
     } catch (error) {
-      if (!error.message.includes("not found")) {
-        deletionErrors.push(`Failed to delete profile picture: ${error.message}`);
-      }
+      deletionErrors.push(`Failed to delete profile picture: ${error.message}`);
     }
   }
 
   if (user.files.length > 0) {
     try {
-      const publicId = user.files[0].url.split("/").pop().split(".")[0];
-      await cloudinary.uploader.destroy(`User Files/${publicId}`);
+      await deleteFileFromStorage(user.files[0].url);
     } catch (error) {
-      if (!error.message.includes("not found")) {
-        deletionErrors.push(`Failed to delete additional file: ${error.message}`);
-      }
+      deletionErrors.push(`Failed to delete additional file: ${error.message}`);
     }
   }
 
@@ -733,6 +741,7 @@ module.exports = {
   getAllUsersController,
   getUserByIdController,
   updateUserController,
+  adminUpdateUserPasswordController,
   deleteUserController,
   approveMembershipController,
   checkFieldAvailabilityController,

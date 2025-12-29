@@ -1,13 +1,25 @@
+import { useState, useEffect } from "react";
 import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaClock } from "react-icons/fa";
+import { getPageContent } from '../utils/contentUtils';
 
 function Contact() {
+  const [content, setContent] = useState({});
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      const pageContent = await getPageContent('contact');
+      setContent(pageContent);
+    };
+    fetchContent();
+  }, []);
   return (
     <div className="bg-gray-50 text-gray-800">
       {/* Hero */}
       <section className="bg-gradient-to-b from-[#0c1c35] to-[#13284c] text-white py-20 text-center">
         <h1 className="text-4xl font-bold">Contact Us</h1>
         <p className="text-lg mt-2">
-          We're here to help and answer any questions you may have
+          {content.contact_hero_subtitle?.content || 
+            "We're here to help and answer any questions you may have"}
         </p>
       </section>
 
@@ -21,7 +33,7 @@ function Contact() {
               <FaPhone className="text-xl text-gray-700" />
             </div>
             <h3 className="font-semibold text-lg mb-1">Phone</h3>
-            <p className="text-sm text-gray-800">+977-1-4271711</p>
+            <p className="text-sm text-gray-800">{content.contact_phone?.content || "+977-1-4271711"}</p>
             <p className="text-xs text-gray-500 mt-2">
               Call us during office hours for immediate assistance
             </p>
@@ -33,8 +45,8 @@ function Contact() {
               <FaEnvelope className="text-xl text-gray-700" />
             </div>
             <h3 className="font-semibold text-lg mb-1">Email</h3>
-            <p className="text-sm text-gray-800">info@rest.org.np</p>
-            <p className="text-sm text-gray-800">support@rest.org.np</p>
+            <p className="text-sm text-gray-800">{content.contact_email_primary?.content || "info@rest.org.np"}</p>
+            <p className="text-sm text-gray-800">{content.contact_email_secondary?.content || "support@rest.org.np"}</p>
             <p className="text-xs text-gray-500 mt-2">
               Send us an email and we'll respond within 24 hours
             </p>
@@ -46,9 +58,9 @@ function Contact() {
               <FaMapMarkerAlt className="text-xl text-gray-700" />
             </div>
             <h3 className="font-semibold text-lg mb-1">Address</h3>
-            <p className="text-sm text-gray-800">Deoneshwar Bhawan</p>
-            <p className="text-sm text-gray-800">Bhadrakali Plaza, Kathmandu</p>
-            <p className="text-sm text-gray-800">Nepal</p>
+            <p className="text-sm text-gray-800">{content.contact_address_line1?.content || "Deoneshwar Bhawan"}</p>
+            <p className="text-sm text-gray-800">{content.contact_address_line2?.content || "Bhadrakali Plaza, Kathmandu"}</p>
+            <p className="text-sm text-gray-800">{content.contact_address_line3?.content || "Nepal"}</p>
             <p className="text-xs text-gray-500 mt-2">
               Visit our central office for in-person assistance
             </p>
@@ -61,9 +73,9 @@ function Contact() {
             </div>
             <h3 className="font-semibold text-lg mb-1">Office Hours</h3>
             <p className="text-sm text-gray-800">
-              sun – Fri: 9:00 AM – 5:00 PM
+              {content.contact_office_hours?.content || "sun – Fri: 9:00 AM – 5:00 PM"}
             </p>
-            <p className="text-sm text-gray-800">Saturday: Closed</p>
+            <p className="text-sm text-gray-800">{content.contact_office_hours_saturday?.content || "Saturday: Closed"}</p>
             <p className="text-xs text-gray-500 mt-2">
               We're here to help during working hours
             </p>
@@ -200,7 +212,7 @@ function Contact() {
             >
               <path d="M2.003 5.884l2-3.464A1 1 0 015 2h10a1 1 0 01.894.553l2 3.464A1 1 0 0118 7H2a1 1 0 01-.997-1.116zM2 8h16v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8z" />
             </svg>
-            <span className="font-semibold text-black">+977-1-4271711</span>
+            <span className="font-semibold text-black">{content.contact_emergency_phone?.content || "+977-1-4271711"}</span>
           </div>
           <span className="text-sm text-gray-600">
             Available 24/7 for emergencies

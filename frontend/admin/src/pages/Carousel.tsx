@@ -13,7 +13,6 @@ interface CarouselImage {
   _id: string;
   url: string;
   type: string;
-  publicId: string;
   alt: string;
 }
 

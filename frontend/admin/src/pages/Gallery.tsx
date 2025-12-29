@@ -13,7 +13,6 @@ interface GalleryImage {
   _id: string;
   url: string;
   type: string;
-  publicId: string;
 }
 
 interface GalleryPost {

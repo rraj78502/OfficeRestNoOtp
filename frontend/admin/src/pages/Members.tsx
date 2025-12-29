@@ -26,6 +26,7 @@ import * as XLSX from "xlsx";
 import { Download, Upload } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { CalendarType, formatBSDate, parseDate, formatADDate } from "@/utils/dateUtils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -111,6 +112,10 @@ const Members: React.FC = () => {
   const [parsedImportRows, setParsedImportRows] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const [dobCalendarType, setDobCalendarType] = useState<CalendarType>("AD");
+  const [dobBsValue, setDobBsValue] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [removeProfilePic, setRemoveProfilePic] = useState(false);
 
   const safeString = (value: any): string => {
     if (value === undefined || value === null) return "";
@@ -128,6 +133,15 @@ const Members: React.FC = () => {
     }
     return "";
   };
+
+  useEffect(() => {
+    if (dobCalendarType === "BS" && formData.dob) {
+      setDobBsValue(formatBSDate(formData.dob, "short"));
+    }
+    if (dobCalendarType === "BS" && !formData.dob) {
+      setDobBsValue("");
+    }
+  }, [dobCalendarType, formData.dob]);
 
   const mapExcelRowToPayload = (row: Record<string, any>) => {
     const employeeId = getExcelValue(row, ["employeeId", "Employee ID", "EmployeeId"]);
@@ -348,11 +362,23 @@ const Members: React.FC = () => {
     });
   };
 
+  const handleDobBsInputChange = (value: string) => {
+    setDobBsValue(value);
+    const parsed = parseDate(value, "BS");
+    if (parsed) {
+      setFormData((prev) => ({
+        ...prev,
+        dob: formatADDate(parsed, "short"),
+      }));
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     if (files && files[0]) {
       if (name === "profilePic") {
         setProfilePic(files[0]);
+        setRemoveProfilePic(false);
       } else if (name === "additionalFile") {
         setAdditionalFile(files[0]);
       }
@@ -572,6 +598,10 @@ const Members: React.FC = () => {
       setAdditionalFile(null);
       setIsEditMode(true);
       setIsModalOpen(true);
+      setNewPassword("");
+      setDobCalendarType("AD");
+      setDobBsValue("");
+      setRemoveProfilePic(false);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof AxiosError
@@ -624,6 +654,7 @@ const Members: React.FC = () => {
       if (additionalFile) {
         formDataToSend.append("additionalFile", additionalFile);
       }
+      formDataToSend.append("removeProfilePic", removeProfilePic ? "true" : "false");
 
       if (isEditMode && currentMember) {
         await axios.patch(
@@ -637,6 +668,19 @@ const Members: React.FC = () => {
             },
           }
         );
+        if (newPassword.trim()) {
+          await axios.post(
+            `${API_BASE_URL}/api/v1/user/update-password/${currentMember._id}`,
+            { password: newPassword.trim() },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "x-admin-frontend": "true",
+                "Content-Type": "application/json",
+              },
+            }
+          );
+        }
         toast({
           title: "Success",
           description: "Member updated successfully",
@@ -843,6 +887,10 @@ const Members: React.FC = () => {
     setIsEditMode(false);
     setIsModalOpen(false);
     setError("");
+    setDobCalendarType("AD");
+    setDobBsValue("");
+    setNewPassword("");
+    setRemoveProfilePic(false);
   };
 
   if (!isAuthenticated) {
@@ -1114,17 +1162,42 @@ const Members: React.FC = () => {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="dob" className="text-sm font-medium">
-                      Date of Birth
-                    </Label>
-                    <Input
-                      id="dob"
-                      name="dob"
-                      type="date"
-                      value={formData.dob}
-                      onChange={handleInputChange}
-                      required
-                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <Label htmlFor="dob" className="text-sm font-medium">
+                        Date of Birth
+                      </Label>
+                      <Select
+                        value={dobCalendarType}
+                        onValueChange={(value) => setDobCalendarType(value as CalendarType)}
+                      >
+                        <SelectTrigger className="w-[140px] h-9">
+                          <SelectValue placeholder="Calendar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="AD">Gregorian (AD)</SelectItem>
+                          <SelectItem value="BS">Bikram Sambat (BS)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {dobCalendarType === "AD" ? (
+                      <Input
+                        id="dob"
+                        name="dob"
+                        type="date"
+                        value={formData.dob}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    ) : (
+                      <Input
+                        id="dob"
+                        name="dob_bs"
+                        placeholder="YYYY/MM/DD"
+                        value={dobBsValue}
+                        onChange={(e) => handleDobBsInputChange(e.target.value)}
+                        required
+                      />
+                    )}
                   </div>
 
                   <div className="grid gap-2">
@@ -1177,6 +1250,21 @@ const Members: React.FC = () => {
                       />
                     </div>
                   )}
+                  {isEditMode && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="newPassword" className="text-sm font-medium">
+                        New Password (optional)
+                      </Label>
+                      <Input
+                        id="newPassword"
+                        name="newPassword"
+                        type="password"
+                        placeholder="Leave blank to keep current password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                    </div>
+                  )}
 
                   <div className="grid gap-2">
                     <Label htmlFor="profilePic" className="text-sm font-medium">
@@ -1190,15 +1278,48 @@ const Members: React.FC = () => {
                       onChange={handleFileChange}
                       required={!isEditMode}
                     />
-                    {isEditMode && currentMember?.profilePic && (
-                      <a
-                        href={currentMember.profilePic}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 text-sm"
-                      >
-                        View Current Profile Picture
-                      </a>
+                    {isEditMode && currentMember?.profilePic && !removeProfilePic && (
+                      <div className="flex items-center gap-3 mt-2">
+                        <img
+                          src={currentMember.profilePic}
+                          alt="Current profile"
+                          className="w-16 h-16 rounded-full object-cover border"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <a
+                            href={currentMember.profilePic}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 text-sm"
+                          >
+                            View current profile picture
+                          </a>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="w-fit"
+                            onClick={() => {
+                              setRemoveProfilePic(true);
+                              setProfilePic(null);
+                            }}
+                          >
+                            Remove current picture
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {isEditMode && removeProfilePic && (
+                      <div className="text-sm text-yellow-700 mt-2">
+                        Current profile picture will be removed.
+                        <button
+                          type="button"
+                          className="ml-2 text-blue-600 underline"
+                          onClick={() => setRemoveProfilePic(false)}
+                        >
+                          Undo
+                        </button>
+                      </div>
                     )}
                   </div>
 

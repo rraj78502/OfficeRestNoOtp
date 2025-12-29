@@ -31,10 +31,6 @@ const carouselSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-        publicId: {
-          type: String,
-          required: true,
-        },
         alt: {
           type: String,
           default: "",

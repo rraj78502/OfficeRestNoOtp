@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, UserCircle, ChevronDown, LogOut, Settings, Moon, Sun, LayoutDashboard, Users, CalendarDays, ImageIcon, LogOutIcon, Building2, Images } from 'lucide-react';
+import { Bell, UserCircle, ChevronDown, LogOut, Settings, Moon, Sun, LayoutDashboard, Users, CalendarDays, ImageIcon, LogOutIcon, Building2, Images, FileText } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -92,6 +92,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               <Link to="/carousel" className={`flex items-center text-xl ${isActive('/carousel')}`}>
                 <Images className="w-5 h-5 mr-3" />
                 <span>Carousel</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/content" className={`flex items-center text-xl ${isActive('/content')}`}>
+                <FileText className="w-5 h-5 mr-3" />
+                <span>Content</span>
               </Link>
             </li>
             <li>

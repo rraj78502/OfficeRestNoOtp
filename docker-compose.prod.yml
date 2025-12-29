@@ -29,6 +29,8 @@ services:
       - CORS_ORIGINS=http://172.16.49.163:8081,http://172.16.49.163:8080,http://10.26.192.124:8081,http://10.26.192.124:8080,https://rest.ntc.net.np
       # Optional: additional comma-separated origins
       # - CORS_ORIGINS=
+    volumes:
+      - backend_uploads:/app/uploads
     depends_on:
       - mongo
     restart: unless-stopped
@@ -74,4 +76,6 @@ services:
 
 volumes:
   mongo_data:
+    driver: local
+  backend_uploads:
     driver: local

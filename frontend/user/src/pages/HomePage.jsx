@@ -4,6 +4,7 @@ import { FaLightbulb, FaBullseye, FaAward } from "react-icons/fa";
 import axios from "axios";
 import rest1 from '../assets/rest.jpg';
 import rest2 from '../assets/rest.jpeg';
+import { getPageContent } from '../utils/contentUtils';
 
 const api_base_url = import.meta.env.VITE_API_URL;
 
@@ -15,6 +16,8 @@ function Home() {
   const [carouselImages, setCarouselImages] = useState([rest1, rest2]); // Default fallback images
   const [currentPhoto, setCurrentPhoto] = useState(0);
   const [carouselLoading, setCarouselLoading] = useState(true);
+  // Content state
+  const [content, setContent] = useState({});
 
   // Fetch carousel images
   useEffect(() => {
@@ -68,6 +71,15 @@ function Home() {
       }
     };
   }, [carouselImages.length]);
+
+  // Fetch page content
+  useEffect(() => {
+    const fetchContent = async () => {
+      const pageContent = await getPageContent('home');
+      setContent(pageContent);
+    };
+    fetchContent();
+  }, []);
 
   // Fetch all events
   useEffect(() => {
@@ -133,12 +145,8 @@ function Home() {
       <section className="text-center py-16 px-6">
         <h2 className="text-3xl font-semibold mb-6">About Our Community</h2>
         <p className="max-w-3xl mx-auto leading-relaxed">
-          R.E.S.T is a vibrant community dedicated to supporting retired
-          telecommunications professionals. We provide a platform for continued
-          connection, shared experiences, and mutual support among our members.
-          Our organization has been serving the telecommunications community for
-          years, fostering relationships and creating opportunities for
-          meaningful engagement in retirement.
+          {content.home_about_community?.content || 
+            "R.E.S.T is a vibrant community dedicated to supporting retired telecommunications professionals. We provide a platform for continued connection, shared experiences, and mutual support among our members. Our organization has been serving the telecommunications community for years, fostering relationships and creating opportunities for meaningful engagement in retirement."}
         </p>
         <a
           href="/aboutus"
@@ -158,17 +166,20 @@ function Home() {
             {
               icon: <FaLightbulb size={36} className="text-yellow-400 mb-4" />,
               title: "Vision",
-              text: `To create a supportive platform where retired telecommunications professionals can thrive, share their expertise, and contribute to national development and social welfare.`,
+              text: content.home_vision?.content || 
+                "To create a supportive platform where retired telecommunications professionals can thrive, share their expertise, and contribute to national development and social welfare.",
             },
             {
               icon: <FaBullseye size={36} className="text-blue-400 mb-4" />,
               title: "Mission",
-              text: `To safeguard the welfare of retired employees through income-generating programs, skill enhancement, advocacy for rights, and facilitation of their involvement in telecom-related initiatives and disaster response.`,
+              text: content.home_mission?.content || 
+                "To safeguard the welfare of retired employees through income-generating programs, skill enhancement, advocacy for rights, and facilitation of their involvement in telecom-related initiatives and disaster response.",
             },
             {
               icon: <FaAward size={36} className="text-green-400 mb-4" />,
               title: "Value",
-              text: `We value respect, integrity, community support, and the wisdom of experience. Our commitment includes honoring contributions, promoting entitlements, and collaborating with similar organizations for consumer rights and sector coordination.`,
+              text: content.home_values?.content || 
+                "We value respect, integrity, community support, and the wisdom of experience. Our commitment includes honoring contributions, promoting entitlements, and collaborating with similar organizations for consumer rights and sector coordination.",
             },
           ].map(({ icon, title, text }) => (
             <div

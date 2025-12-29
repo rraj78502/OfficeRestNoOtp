@@ -5,6 +5,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format } from "date-fns";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { convertADToBS, convertBSToAD } from "../utils/dateUtils";
 
 const api_base_url = import.meta.env.VITE_API_URL;
 
@@ -42,6 +43,9 @@ function Membership() {
   const [membershipNumber, setMembershipNumber] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
   const fileInputRef = useRef(null);
+  const [dobCalendarType, setDobCalendarType] = useState("AD");
+  const [bsDobInput, setBsDobInput] = useState("");
+  const [bsDobError, setBsDobError] = useState("");
 
   // Real-time validation state
   const [fieldValidation, setFieldValidation] = useState({
@@ -142,6 +146,21 @@ function Membership() {
       ...prev,
       [name]: date ? format(date, "yyyy-MM-dd") : null,
     }));
+    if (name === "dob") {
+      if (date) {
+        const bsDate = convertADToBS(date);
+        if (bsDate) {
+          const formatted = `${bsDate.year}-${String(bsDate.month).padStart(2, "0")}-${String(
+            bsDate.day
+          ).padStart(2, "0")}`;
+          setBsDobInput(formatted);
+        } else {
+          setBsDobInput("");
+        }
+      } else {
+        setBsDobInput("");
+      }
+    }
   };
 
   // Helper function to render validation feedback
@@ -343,6 +362,7 @@ function Membership() {
       setProfilePic(null);
       setProfilePicPreview(null);
       setAdditionalFile(null);
+      resetDobState();
     } catch (err) {
       setError(
         err.response?.data?.message || "Registration failed. Please try again."
@@ -354,6 +374,56 @@ function Membership() {
     setShowSuccessPopup(false);
     setMembershipNumber("");
     setRegistrationNumber("");
+  };
+
+  const handleDobCalendarSwitch = (type) => {
+    setDobCalendarType(type);
+    if (type === "BS" && formData.dob) {
+      const bsDate = convertADToBS(formData.dob);
+      if (bsDate) {
+        const formatted = `${bsDate.year}-${String(bsDate.month).padStart(2, "0")}-${String(
+          bsDate.day
+        ).padStart(2, "0")}`;
+        setBsDobInput(formatted);
+      }
+    }
+  };
+
+  const handleBsDobInputChange = (value) => {
+    setBsDobInput(value);
+    setBsDobError("");
+
+    if (!value) {
+      setFormData((prev) => ({
+        ...prev,
+        dob: null,
+      }));
+      return;
+    }
+
+    const tokens = value.split(/[-\/]/);
+    if (tokens.length !== 3 || tokens.some((token) => token.trim() === "")) {
+      return;
+    }
+
+    const parts = tokens.map((part) => Number(part));
+    if (parts.some((part) => Number.isNaN(part))) {
+      return;
+    }
+
+    const [year, month, day] = parts;
+    const adDate = convertBSToAD(year, month, day);
+    if (adDate) {
+      handleDateChange(adDate, "dob");
+    } else {
+      setBsDobError("Invalid BS date");
+    }
+  };
+
+  const resetDobState = () => {
+    setDobCalendarType("AD");
+    setBsDobInput("");
+    setBsDobError("");
   };
 
   const minDob = new Date(1900, 0, 1);
@@ -586,21 +656,48 @@ function Membership() {
             <label>
               Date of Birth(जन्म मिति) <span style={{ color: 'red' }}>*</span>
             </label>
-            <DatePicker
-              selected={formData.dob ? new Date(formData.dob) : null}
-              onChange={(date) => handleDateChange(date, "dob")}
-              dateFormat="yyyy-MM-dd"
-              className="mt-1 p-2 border rounded w-full"
-              placeholderText="Select Date"
-              showYearDropdown
-              showMonthDropdown
-              dropdownMode="select"
-              minDate={minDob}
-              maxDate={maxDob}
-              yearDropdownItemNumber={100}
-              scrollableYearDropdown
-              required
-            />
+            <div className="flex gap-2 mt-2">
+              {["AD", "BS"].map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleDobCalendarSwitch(type)}
+                  className={`px-3 py-1 rounded border ${
+                    dobCalendarType === type ? "bg-blue-600 text-white" : "bg-white text-gray-700"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+            {dobCalendarType === "AD" ? (
+              <input
+                type="date"
+                className="mt-2 p-2 border rounded w-full"
+                value={formData.dob || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleDateChange(value ? new Date(value) : null, "dob");
+                }}
+                min={format(minDob, "yyyy-MM-dd")}
+                max={format(maxDob, "yyyy-MM-dd")}
+                required
+              />
+            ) : (
+              <div className="mt-2 space-y-2">
+                <input
+                  type="text"
+                  placeholder="YYYY-MM-DD"
+                  value={bsDobInput}
+                  onChange={(e) => handleBsDobInputChange(e.target.value)}
+                  className="p-2 border rounded w-full"
+                />
+                <p className="text-sm text-gray-500">
+                  उदाहरण: 2081-08-15 (वर्ष-महिना-दिन)
+                </p>
+                {bsDobError && <p className="text-red-600 text-sm">{bsDobError}</p>}
+              </div>
+            )}
           </div>
 
           <div>

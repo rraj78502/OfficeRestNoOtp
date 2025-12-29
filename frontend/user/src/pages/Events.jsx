@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+  import { useState, useEffect } from "react";
   import { FaCalendarAlt, FaClock, FaMapMarkerAlt } from "react-icons/fa";
   import { useNavigate } from "react-router-dom";
   import axios from "axios";
+  import { getPageContent } from '../utils/contentUtils';
 
   const api_base_url = import.meta.env.VITE_API_URL;
 
@@ -12,7 +13,17 @@ import { useState, useEffect } from "react";
     const [error, setError] = useState(null);
     const [notification, setNotification] = useState(null);
     const [modalImage, setModalImage] = useState(null);
+    const [content, setContent] = useState({});
     const navigate = useNavigate();
+
+    // Fetch page content
+    useEffect(() => {
+      const fetchContent = async () => {
+        const pageContent = await getPageContent('events');
+        setContent(pageContent);
+      };
+      fetchContent();
+    }, []);
 
     // Fetch all events
     useEffect(() => {
@@ -118,7 +129,8 @@ import { useState, useEffect } from "react";
         <section className="bg-gradient-to-b from-[#0c1c35] to-[#13284c] text-white py-20 text-center">
           <h1 className="text-4xl font-bold mb-2">Events & Activities</h1>
           <p className="text-lg">
-            Stay connected with our community through regular events and activities
+            {content.events_hero_subtitle?.content || 
+              "Stay connected with our community through regular events and activities"}
           </p>
         </section>
 

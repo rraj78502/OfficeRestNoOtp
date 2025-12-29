@@ -1,7 +1,7 @@
 const asyncHandler = require("../utils/asyncHandler");
 const Carousel = require("../model/carouselModel");
 const Branch = require("../model/branchModel");
-const { uploadFileWithFolderLogic, deleteFileFromCloudinary } = require("../helper/cloudinaryHepler");
+const { uploadFileWithFolderLogic, deleteFileFromStorage } = require("../helper/storageHelper");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const mongoose = require("mongoose");
@@ -52,29 +52,23 @@ const uploadCarouselController = asyncHandler(async (req, res) => {
     }
   });
 
-  // Upload files to Cloudinary
+  // Upload files to local storage
   const images = [];
   for (const file of req.files) {
     try {
       const result = await uploadFileWithFolderLogic(file.path, file.mimetype, "Carousel");
-      console.log(`Cloudinary upload result for ${file.path}:`, result);
-      if (result && result.secure_url) {
-        images.push({
-          url: result.secure_url,
-          type: file.mimetype,
-          publicId: result.public_id,
-          alt: `${title} - Carousel Image`,
-        });
-      } else {
-        console.error(`No secure_url for file ${file.path}`);
-      }
+      images.push({
+        url: result.url,
+        type: file.mimetype,
+        alt: `${title} - Carousel Image`,
+      });
     } catch (error) {
       console.error(`Failed to upload file ${file.path}:`, error.message);
     }
   }
 
   if (images.length === 0) {
-    throw new ApiError(400, "Failed to upload any images to Cloudinary");
+    throw new ApiError(400, "Failed to upload any images");
   }
 
   // Get the next order number
@@ -181,17 +175,12 @@ const deleteCarouselImageController = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Image not found in carousel");
   }
 
-  // Delete from Cloudinary
+  // Delete from local storage
   try {
-    const result = await deleteFileFromCloudinary(image.url, image.type);
-    if (result && result.result === 'not found') {
-      console.warn(`Image not found in Cloudinary, proceeding with database deletion: ${image.url}`);
-    } else {
-      console.log(`Cloudinary deletion successful for ${image.url}`);
-    }
+    await deleteFileFromStorage(image.url);
   } catch (error) {
-    console.error(`Failed to delete image from Cloudinary: ${error.message}`);
-    throw new ApiError(500, `Failed to delete image from Cloudinary: ${error.message}`);
+    console.error(`Failed to delete image from storage: ${error.message}`);
+    throw new ApiError(500, `Failed to delete image: ${error.message}`);
   }
 
   // Remove image from carousel
@@ -225,17 +214,12 @@ const deleteCarouselController = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Carousel not found");
   }
 
-  // Delete all images from Cloudinary
+  // Delete all images from local storage
   for (const image of carousel.images) {
     try {
-      const result = await deleteFileFromCloudinary(image.url, image.type);
-      if (result && result.result === 'not found') {
-        console.warn(`Image not found in Cloudinary: ${image.url}`);
-      } else {
-        console.log(`Cloudinary deletion successful for ${image.url}`);
-      }
+      await deleteFileFromStorage(image.url);
     } catch (error) {
-      console.error(`Failed to delete image from Cloudinary: ${error.message}`);
+      console.error(`Failed to delete image from storage: ${error.message}`);
     }
   }
 
@@ -277,26 +261,23 @@ const addImagesToCarouselController = asyncHandler(async (req, res) => {
     }
   });
 
-  // Upload files to Cloudinary
+  // Upload files to local storage
   const newImages = [];
   for (const file of req.files) {
     try {
       const result = await uploadFileWithFolderLogic(file.path, file.mimetype, "Carousel");
-      if (result && result.secure_url) {
-        newImages.push({
-          url: result.secure_url,
-          type: file.mimetype,
-          publicId: result.public_id,
-          alt: `${carousel.title} - Carousel Image`,
-        });
-      }
+      newImages.push({
+        url: result.url,
+        type: file.mimetype,
+        alt: `${carousel.title} - Carousel Image`,
+      });
     } catch (error) {
       console.error(`Failed to upload file ${file.path}:`, error.message);
     }
   }
 
   if (newImages.length === 0) {
-    throw new ApiError(400, "Failed to upload any images to Cloudinary");
+    throw new ApiError(400, "Failed to upload any images");
   }
 
   // Add new images to carousel

@@ -14,6 +14,7 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CommitteeManagement from "./pages/Committee";
 import Carousel from "./pages/Carousel";
+import ContentManagement from "./pages/ContentManagement";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,11 @@ const App = () => (
             <Route path="/carousel" element={
               <ProtectedRoute>
                 <Carousel />
+              </ProtectedRoute>
+            } />
+            <Route path="/content" element={
+              <ProtectedRoute>
+                <ContentManagement />
               </ProtectedRoute>
             } />
             
