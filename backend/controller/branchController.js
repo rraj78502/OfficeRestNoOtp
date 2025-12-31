@@ -112,7 +112,7 @@ const normalizeTeamMembers = async (teamMembers, files, existingMembers = []) =>
 // Get all branches (public endpoint)
 const getAllBranches = asyncHandler(async (req, res) => {
   const { includeInactive } = req.query;
-  
+
   let query = {};
   if (!includeInactive || includeInactive !== "true") {
     query.isActive = true;
@@ -122,13 +122,10 @@ const getAllBranches = asyncHandler(async (req, res) => {
     .sort({ order: 1, name: 1 })
     .select("-createdBy -updatedBy");
 
-  if (!branches || branches.length === 0) {
-    throw new ApiError(404, "No branches found");
-  }
-
+  // Return empty array instead of 404 when no branches found
   return res
     .status(200)
-    .json(new ApiResponse(200, branches, "Branches retrieved successfully"));
+    .json(new ApiResponse(200, branches || [], "Branches retrieved successfully"));
 });
 
 // Get branch by slug (public endpoint)

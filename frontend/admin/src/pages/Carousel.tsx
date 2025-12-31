@@ -518,7 +518,7 @@ const UploadForm = ({
             </SelectTrigger>
             <SelectContent>
               {branchOptions.length === 0 ? (
-                <SelectItem value="" disabled>
+                <SelectItem value="no-branches" disabled>
                   No branches found
                 </SelectItem>
               ) : (
