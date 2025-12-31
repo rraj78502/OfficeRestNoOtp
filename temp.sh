@@ -95,32 +95,37 @@ if $PATCH_MONGO; then
   MONGO_BIN_CMD="${MONGO_BIN:-mongo}"
   echo "Patching carousel image URLs in MongoDB ($MONGO_URI)"
   tmp_js="$(mktemp)"
-  safe_base=$(printf '%s' "$BASE_URL" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  cat > "$tmp_js" <<MONGO
-const newBase = "$safe_base";
-if (!newBase) {
+  python3 - "$tmp_js" "$BASE_URL" <<'PY'
+import json, sys
+path, base = sys.argv[1:3]
+script = f"""
+const newBase = {json.dumps(base)};
+if (!newBase) {{
   print('BASE_URL was empty; aborting patch.');
   quit(1);
-}
-const findOldBase = /^http:\/\/localhost:8000/;
-const cursor = db.carousels.find({ "images.url": findOldBase });
+}}
+const findOldBase = /^http:\\/\\/localhost:8000/;
+const cursor = db.carousels.find({{ "images.url": findOldBase }});
 let updated = 0;
-cursor.forEach(doc => {
+cursor.forEach(doc => {{
   let changed = false;
-  const newImages = doc.images.map(img => {
-    if (findOldBase.test(img.url)) {
+  const newImages = doc.images.map(img => {{
+    if (findOldBase.test(img.url)) {{
       changed = true;
-      return { ...img, url: img.url.replace(findOldBase, newBase) };
-    }
+      return {{ ...img, url: img.url.replace(findOldBase, newBase) }};
+    }}
     return img;
-  });
-  if (changed) {
-    db.carousels.updateOne({ _id: doc._id }, { $set: { images: newImages } });
+  }});
+  if (changed) {{
+    db.carousels.updateOne({{ _id: doc._id }}, {{ $set: {{ images: newImages }} }});
     updated += 1;
-  }
-});
+  }}
+}});
 print(`Patched ${updated} carousel document(s).`);
-MONGO
+"""
+with open(path, "w", encoding="utf-8") as fh:
+  fh.write(script.strip() + "\n")
+PY
   if [[ "$MONGO_BIN_CMD" == mongo || "$MONGO_BIN_CMD" == mongosh ]]; then
     "$MONGO_BIN_CMD" "$MONGO_URI" --quiet "$tmp_js"
   else
