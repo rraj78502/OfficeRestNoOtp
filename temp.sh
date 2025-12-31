@@ -92,7 +92,7 @@ docker compose -f "$COMPOSE_FILE" restart backend
 if $PATCH_MONGO; then
   MONGO_URI_DEFAULT="mongodb://localhost:27017/REST"
   MONGO_URI="${MONGO_URI:-$MONGO_URI_DEFAULT}"
-  MONGO_BIN="${MONGO_BIN:-mongo}"
+  MONGO_BIN_CMD="${MONGO_BIN:-mongo}"
   echo "Patching carousel image URLs in MongoDB ($MONGO_URI)"
   tmp_js="$(mktemp)"
   cat > "$tmp_js" <<'MONGO'
@@ -120,7 +120,12 @@ cursor.forEach(doc => {
 });
 print(`Patched ${updated} carousel document(s).`);
 MONGO
-  NEW_BASE="$BASE_URL" "$MONGO_BIN" "$MONGO_URI" --quiet "$tmp_js"
+  if [[ "$MONGO_BIN_CMD" == mongo || "$MONGO_BIN_CMD" == mongosh ]]; then
+    NEW_BASE="$BASE_URL" "$MONGO_BIN_CMD" "$MONGO_URI" --quiet "$tmp_js"
+  else
+    # Treat MONGO_BIN as a full shell command (e.g., "docker exec ... mongosh")
+    NEW_BASE="$BASE_URL" bash -c "$MONGO_BIN_CMD \"$MONGO_URI\" --quiet \"$tmp_js\""
+  fi
   rm -f "$tmp_js"
 fi
 
