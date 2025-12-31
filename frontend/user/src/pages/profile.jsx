@@ -30,9 +30,17 @@ function Profile() {
         navigate("/login");
       }
     } catch (error) {
-      console.error("Failed to fetch user data:", error.message);
-      setError("Failed to load profile. Please log in.");
-      navigate("/login");
+      // Handle 401 (unauthenticated) and other errors gracefully
+      if (error.response?.status === 401) {
+        // User is not authenticated - redirect to login
+        setError("Please log in to access your profile.");
+        navigate("/login");
+      } else {
+        // Only log actual errors, not authentication failures
+        console.error("Failed to fetch user data:", error.message);
+        setError("Failed to load profile. Please try again.");
+        navigate("/login");
+      }
     }
   };
 

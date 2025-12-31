@@ -259,7 +259,7 @@ register_admin() {
     sleep 5
     
     # Get the backend container name (from docker-compose.yml)
-    BACKEND_CONTAINER="office_rest_backend_dev"
+    BACKEND_CONTAINER="office_rest_backend"
     
     # Check if container is running
     if ! docker ps --format '{{.Names}}' | grep -q "^${BACKEND_CONTAINER}$"; then

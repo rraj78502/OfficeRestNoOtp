@@ -62,10 +62,23 @@ const Dashboard = () => {
       try {
         setLoading(true);
         
+        // Get token from localStorage
+        const token = localStorage.getItem("token");
+        const headers = {
+          'x-admin-frontend': 'true',
+          ...(token && { Authorization: `Bearer ${token}` })
+        };
+
         // Fetch events and users in parallel
         const [eventsResponse, usersResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/v1/event/get-all-event`, { withCredentials: true }),
-          axios.get(`${API_BASE_URL}/api/v1/user/get-all-users`, { withCredentials: true })
+          axios.get(`${API_BASE_URL}/api/v1/event/get-all-event`, {
+            headers,
+            withCredentials: true
+          }),
+          axios.get(`${API_BASE_URL}/api/v1/user/get-all-users`, {
+            headers,
+            withCredentials: true
+          })
         ]);
 
         // Process events
@@ -153,7 +166,12 @@ const Dashboard = () => {
     if (matchingEvents.length > 0) {
       try {
         const eventId = matchingEvents[0]._id;
+        const token = localStorage.getItem("token");
         const response = await axios.get(`${API_BASE_URL}/api/v1/event/get-event/${eventId}`, {
+          headers: {
+            'x-admin-frontend': 'true',
+            ...(token && { Authorization: `Bearer ${token}` })
+          },
           withCredentials: true,
         });
         const eventData: RawEvent = response.data.data;

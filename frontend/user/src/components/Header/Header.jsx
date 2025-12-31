@@ -33,11 +33,22 @@ function Header() {
       if (response.data.success) {
         setIsLoggedIn(true);
         setUser(response.data.data);
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
       }
     } catch (error) {
-      console.error("Failed to fetch user data:", error.message);
-      setIsLoggedIn(false);
-      setUser(null);
+      // Handle 401 (unauthenticated) and other errors gracefully
+      if (error.response?.status === 401) {
+        // User is not authenticated - this is normal
+        setIsLoggedIn(false);
+        setUser(null);
+      } else {
+        // Only log actual errors, not authentication failures
+        console.error("Failed to fetch user data:", error.message);
+        setIsLoggedIn(false);
+        setUser(null);
+      }
     }
   };
 
@@ -74,7 +85,7 @@ function Header() {
           {isLoggedIn && user ? (
             <NavLink to="/profile" className="w-10 h-10 rounded-full overflow-hidden">
               <img
-                src={user.profilePic || "https://via.placeholder.com/40"}
+                src={user.profilePic || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM2MzY2RjEiLz4KPHBhdGggZD0iTTIwIDIwQzIyLjc2MTQgMjAgMjUgMTcuNzYxNCAyNSAxNUMyNSAxMi4yMzg2IDIyLjc2MTQgMTAgMjAgMTBDMTcuMjM4NiAxMCAxNSAxMi4yMzg2IDE1IDE1QzE1IDE3Ljc2MTQgMTcuNzYxNCAyMCAyMFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo="}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
