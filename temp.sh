@@ -95,10 +95,11 @@ if $PATCH_MONGO; then
   MONGO_BIN_CMD="${MONGO_BIN:-mongo}"
   echo "Patching carousel image URLs in MongoDB ($MONGO_URI)"
   tmp_js="$(mktemp)"
-  cat > "$tmp_js" <<'MONGO'
-const newBase = (typeof NEW_BASE !== 'undefined' && NEW_BASE) ? NEW_BASE : '';
+  safe_base=$(printf '%s' "$BASE_URL" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  cat > "$tmp_js" <<MONGO
+const newBase = "$safe_base";
 if (!newBase) {
-  print('NEW_BASE not provided to mongo shell; set NEW_BASE when invoking.');
+  print('BASE_URL was empty; aborting patch.');
   quit(1);
 }
 const findOldBase = /^http:\/\/localhost:8000/;
@@ -121,10 +122,11 @@ cursor.forEach(doc => {
 print(`Patched ${updated} carousel document(s).`);
 MONGO
   if [[ "$MONGO_BIN_CMD" == mongo || "$MONGO_BIN_CMD" == mongosh ]]; then
-    NEW_BASE="$BASE_URL" "$MONGO_BIN_CMD" "$MONGO_URI" --quiet "$tmp_js"
+    "$MONGO_BIN_CMD" "$MONGO_URI" --quiet "$tmp_js"
   else
-    # Treat MONGO_BIN as a full shell command (e.g., "docker exec ... mongosh")
-    NEW_BASE="$BASE_URL" bash -c "$MONGO_BIN_CMD \"$MONGO_URI\" --quiet \"$tmp_js\""
+    # Treat MONGO_BIN as a full shell command (e.g., "docker exec ... mongosh").
+    # Feed the script via stdin so the command can run inside a container.
+    bash -c "$MONGO_BIN_CMD \"$MONGO_URI\" --quiet" < "$tmp_js"
   fi
   rm -f "$tmp_js"
 fi
