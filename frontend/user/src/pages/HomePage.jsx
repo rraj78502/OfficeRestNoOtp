@@ -128,7 +128,7 @@ function Home() {
                   src={src}
                   alt="Group photograph"
                   className={
-                    `absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ` +
+                    `absolute inset-0 w-full h-full object-contain transition-opacity duration-700 ` +
                     (idx === currentPhoto ? 'opacity-100' : 'opacity-0')
                   }
                 />

@@ -373,7 +373,7 @@ const Carousel = () => {
                             <img
                               src={image.url}
                               alt={image.alt || carousel.title}
-                              className="w-full h-48 object-cover rounded-md"
+                              className="w-full h-48 object-contain rounded-md"
                             />
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
@@ -553,7 +553,7 @@ const UploadForm = ({
               <img
                 src={url}
                 alt={`Preview ${index + 1}`}
-                className="w-full h-24 object-cover rounded-md"
+                className="w-full h-24 object-contain rounded-md"
               />
               <Button
                 type="button"
