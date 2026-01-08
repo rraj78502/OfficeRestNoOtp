@@ -1,0 +1,29 @@
+<svg version="1.1" id="Calque_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="500px" height="600px" viewBox="0 0 500 600" enable-background="new 0 0 500 600" xml:space="preserve" transform="rotate(0) scale(1, 1)">
+<g>
+	<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="0" y1="300" x2="500" y2="300">
+		<stop offset="0" style="stop-color:#2c907d"/>
+		<stop offset="0.1" style="stop-color:#902c3f"/>
+		<stop offset="0.15" style="stop-color:#2c907d"/>
+		<stop offset="0.2" style="stop-color:#902c3f"/>
+		<stop offset="0.3" style="stop-color:#2c907d"/>
+		<stop offset="0.35" style="stop-color:#2c907d"/>
+		<stop offset="0.4" style="stop-color:#902c3f"/>
+		<stop offset="0.45" style="stop-color:#2c907d"/>
+		<stop offset="0.5" style="stop-color:#2c907d"/>
+		<stop offset="0.6" style="stop-color:#902c3f"/>
+		<stop offset="0.65" style="stop-color:#2c907d"/>
+		<stop offset="0.7" style="stop-color:#902c3f"/>
+		<stop offset="0.85" style="stop-color:#2c907d"/>
+		<stop offset="0.9" style="stop-color:#902c3f"/>
+		<stop offset="0.95" style="stop-color:#2c907d"/>
+		<stop offset="1" style="stop-color:#902c3f"/>
+	</linearGradient>
+	<rect fill="url(#SVGID_1_)" width="500" height="600"/>
+	<linearGradient id="SVGID_2_" gradientUnits="userSpaceOnUse" x1="250" y1="600" x2="250" y2="-1.122407e-008">
+		<stop offset="0.05" style="stop-color:#902c3f"/>
+		<stop offset="0.1351" style="stop-color:#902c3f;stop-opacity:0.9104"/>
+		<stop offset="1" style="stop-color:#902c3f;stop-opacity:0"/>
+	</linearGradient>
+	<rect fill="url(#SVGID_2_)" width="500" height="600"/>
+</g>
+</svg>
