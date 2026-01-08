@@ -13,9 +13,11 @@ if (loaded.error) {
 
 const connectDB = require("./db/db");
 const app = require("./app");
+const { seedSettings } = require("./controller/settingController");
 
 connectDB()
-  .then(() => {
+  .then(async () => {
+    await seedSettings();
     app.listen(process.env.PORT, () => {
       console.log(`Server running in ${env} mode on port ${process.env.PORT}`);
     });

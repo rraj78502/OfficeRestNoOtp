@@ -41,7 +41,7 @@ app.use(
       console.log('Request origin:', origin);
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
+
       if (allowedOrigins.includes(origin) || isTrustedLocalhost(origin)) {
         return callback(null, true);
       }
@@ -50,7 +50,7 @@ app.use(
     },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-frontend'],
-    methods: ['GET', 'POST','PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     preflightContinue: false,
     optionsSuccessStatus: 204
   })
@@ -79,6 +79,7 @@ const committeeRouter = require('./routes/committeeRoutes');
 const branchRouter = require('./routes/branchRoutes');
 const carouselRouter = require('./routes/carouselRoutes');
 const contentRouter = require('./routes/contentRoutes');
+const settingRouter = require('./routes/settingRoutes');
 
 
 app.use('/api/v1/user', userRouter);
@@ -88,6 +89,7 @@ app.use('/api/v1/committee-members', committeeRouter);
 app.use('/api/v1/branches', branchRouter);
 app.use('/api/v1/carousel', carouselRouter);
 app.use('/api/v1/content', contentRouter);
+app.use('/api/v1/settings', settingRouter);
 
 
 // Global Error Handler
