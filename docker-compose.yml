@@ -34,7 +34,7 @@ services:
 
   frontend-user:
     image: node:18
-    container_name: office_rest_frontend_user
+    container_name: office_rest_frontend_user_dev
     working_dir: /app
     command: >
       bash -lc "npm install && npm run dev -- --host 0.0.0.0 --port 5173"

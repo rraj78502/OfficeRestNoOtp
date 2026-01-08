@@ -179,8 +179,9 @@ const styles = {
     left: 0,
     width: '50%',
     height: '100%',
-    backgroundColor: '#FFD700', // Golden Yellow
-    backgroundImage: 'none',
+    backgroundColor: '#902C3E', // Requested Color
+    backgroundImage: 'url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/950358/curtain.svg")',
+    backgroundSize: 'cover',
     transformOrigin: 'top right',
     boxShadow: 'inset -10px 0 20px rgba(0,0,0,0.5)',
   },
@@ -190,8 +191,9 @@ const styles = {
     left: '50%',
     width: '50%',
     height: '100%',
-    backgroundColor: '#FFD700', // Golden Yellow
-    backgroundImage: 'none',
+    backgroundColor: '#902C3E', // Requested Color
+    backgroundImage: 'url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/950358/curtain.svg")',
+    backgroundSize: 'cover',
     transformOrigin: 'top left',
     boxShadow: 'inset 10px 0 20px rgba(0,0,0,0.5)',
   },
@@ -217,7 +219,7 @@ const styles = {
     fontFamily: '"Open Sans", sans-serif',
     fontSize: '5vw', // Responsive font size for long text
     fontWeight: 'bold',
-    color: 'white',
+    color: '#902C3E',
     textShadow: '0 2px 4px rgba(0,0,0,0.5)',
     opacity: 0,
     zIndex: 3,
